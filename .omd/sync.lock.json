@@ -1,0 +1,9 @@
+{
+  "design_md_sha1": "da356dd45fc92edfcc5c2a99ac9ea44807a56b00",
+  "synced_at": "2026-06-16",
+  "shims": {
+    "CLAUDE.md": "52c11bf789d92a5e86db8c2078ad2287ea4b2168",
+    "AGENTS.md": "52c11bf789d92a5e86db8c2078ad2287ea4b2168",
+    ".cursor/rules/omd-design.mdc": "17cd1846bca201569c5100c05b0dc7b5798e5d30"
+  }
+}

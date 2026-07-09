@@ -1,0 +1,26 @@
+{
+  "reference_id": "duolingo",
+  "description": "중학생이 푸는 영어 문법 학습/문제풀이 서비스",
+  "mode": "inspired",
+  "delta_set": {
+    "axes": {},
+    "voiceHints": [
+      "korean-dominant",
+      "중학생 대상 친근한 존댓말/반말 혼용",
+      "second person",
+      "encouraging, no shaming on wrong answers"
+    ],
+    "matchedKeywords": [
+      "education",
+      "playful",
+      "encouraging",
+      "gamified",
+      "language-learning"
+    ],
+    "warnings": [
+      "Reference voice is English-dominant; project voice must be Korean for 중학생 audience — adapt §10 Voice samples to KR while preserving duolingo's warm/playful register.",
+      "Color/radius/motion tokens kept at duolingo canonical (no axis shift requested)."
+    ]
+  },
+  "bootstrapped_at": "2026-06-16"
+}
