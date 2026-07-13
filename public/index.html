@@ -912,7 +912,7 @@ function renderHistoryTable(){
 }
 
 /* ---------- Gemini AI 연동 ---------- */
-const GEMINI_URL='https://us-central1-ditigal-grammar.cloudfunctions.net/askGemini';
+const GEMINI_URL='https://us-central1-yoons-digital-grammar-v2.cloudfunctions.net/askGemini';
 async function callGemini(system,input,onDelta){
   const res=await fetch(GEMINI_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system,input})});
   if(!res.ok||!res.body) throw new Error('네트워크 오류('+res.status+')');
