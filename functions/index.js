@@ -7,7 +7,7 @@ const ttsClient = new textToSpeech.TextToSpeechClient();
 
 // 한국어 여성(발랄) / 영어 여성 음성 설정
 exports.speak = onRequest(
-  { timeoutSeconds: 60, memory: "512MiB" },
+  { timeoutSeconds: 60, memory: "512MiB", invoker: "public" },
   async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -48,6 +48,7 @@ exports.askGemini = onRequest(
   {
     secrets: ["GEMINI_API_KEY"],
     timeoutSeconds: 120,
+    invoker: "public",
   },
   async (req, res) => {
     // Manual CORS — must come before any other header
