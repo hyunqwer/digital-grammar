@@ -174,6 +174,11 @@
   .path .prow:active{transform:scale(.99)}
   .prow .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
   .prow .tx{font-size:.95rem;font-weight:800}.prow .tx small{display:block;color:var(--muted);font-weight:650;font-size:.82rem;margin-top:2px}
+  .goal-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0}
+  .goal-row+.goal-row{border-top:1px solid var(--line)}
+  .goal-ck{flex-shrink:0;width:24px;height:24px;border-radius:9999px;background:#3182f6;color:#fff;font-size:.8rem;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .goal-tx b{font-size:max(1rem,16px);font-weight:800;line-height:1.35}
+  .goal-tx small{display:block;color:var(--muted);font-weight:650;font-size:.84rem;margin-top:2px}
   .tag{margin-left:auto;font-size:.7rem;font-weight:850;padding:5px 11px;border-radius:999px}
   .tag.good{background:#e8fbf1;color:#0c7a4c}.tag.weak{background:#fff0f3;color:#bf2a48}
   @keyframes diagIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -342,7 +347,7 @@
    ============================================================ */
 const STAGES=[
   {key:'intro',label:'시작'},
-  {key:'diag',label:'진단',ic:'🩺',title:'Warm-up 진단',sub:'먼저 내 실력을 확인해요',color:'#3182f6'},
+  {key:'diag',label:'진단',ic:'🩺',title:'오늘의 워밍업',sub:'가볍게 얼마나 아는지 확인해요',color:'#3182f6'},
   {key:'learn',label:'개념 익히기',ic:'💡',title:'개념 익히기',sub:'영상과 AI로 핵심 개념을 익혀요',color:'#3182f6'},
   {key:'train',label:'Skill Up',ic:'🎯',title:'Skill Up',sub:'주어에 맞는 be동사를 2단계로 훈련해요',color:'#3182f6'},
   {key:'checkup',label:'Check Up',ic:'✏️',title:'Check Up',sub:'개념 확인으로 개념을 잡아봐요',color:'#3182f6'},
@@ -382,6 +387,9 @@ checkup:[
  {type:'mc',skill:'뜻',ko:'다음 문장에서 am의 뜻은?<span class="qprompt">I am a pianist.</span>',q:[''],opts:['~이다','~에 있다'],ans:'~이다',sol:'이름·직업(a pianist)이 오면 <b>~이다</b>.'},
  {type:'mc',skill:'3인칭단수',ko:'빈칸에 들어갈 알맞은 말을 고르시오.',q:['Kimchi','Korean food.'],opts:['am','are','is'],ans:'is',sol:'Kimchi는 하나의 음식 이름이므로 단수처럼 보고 <b>is</b>를 써요.'},
  {type:'mc',skill:'복수주어',ko:'빈칸에 들어갈 알맞은 말을 고르시오.',q:['They','my classmates.'],opts:['am','are','is'],ans:'are',sol:'They(복수) → <b>are</b>.'}
+],
+videoCheck:[
+ {type:'mc',skill:'인칭대명사',ko:'영상에서 배운 내용을 확인해 볼게요. 빈칸에 알맞은 것을 고르세요.',q:['They','my best friends.'],opts:['am','is','are'],ans:'are',sol:'They(복수 대명사) → <b>are</b>.'}
 ],
 focus:[
  {type:'focus',skill:'복수주어',ko:'John과 Susan은 매우 다르다.',sentence:['John and Susan','____','very different.'],subject:'John and Susan',kind:'복수 주어',be:'are',sol:'John and Susan은 두 명을 가리키는 복수 주어이므로 are를 써요.'},
@@ -530,12 +538,13 @@ const TALK=[
   chunks:[{t:'마지막 문제에요! 내 나이를 영어로 말해 볼까요? I am 다음에 나이를 넣어서!'}],
   qKo:'내 나이를 영어로 말해 보세요.', qEn:'I am ___ years old.'},
  {mode:'outro',
-  chunks:[{t:'개념 익히기 끝! 이제 문제로 확인해 볼까요?'}],
+  chunks:[{t:'이제 문제로 확인해 볼까요?'}],
   cap:`개념 익히기 끝! 🎉<br><em>주어에 따라 am · is · are</em><br><br>이제 문제로 확실하게 굳혀볼까요?`}
 ];
 
 /* ---------- 상태/유틸 ---------- */
 const S={stageIdx:0,pts:0,combo:0,maxCombo:0,totalGraded:0,totalCorrect:0,skillStat:{},soundOn:true,history:[]};
+const REVIEW_MODE = /(^|[?&])review=1(&|$)/.test(location.search);
 const $=id=>document.getElementById(id);
 const stageEl=$('stage'),ctaEl=$('cta');
 const norm=s=>(s||'').toLowerCase().replace(/[.!?,]/g,'').replace(/\s+/g,' ').trim();
@@ -672,23 +681,23 @@ function go(i){ S.stageIdx=i; renderSteps(); syncHud(); stageEl.scrollTop=0;
 const next=()=>go(S.stageIdx+1);
 /* 단계 전환 화면에서 읽어줄 '영역 안내' 음성 (담백하게 한 문장) */
 const STAGE_VOICE={
-  diag:'먼저 얼마나 알고 있는지 가볍게 확인해 볼게요.',
+  diag:'오늘 배울 걸 가볍게 워밍업해 볼까요? 편하게 답하면 돼요.',
   learn:'먼저 영상으로 개념을 배우고, 에이아이 선생님과 함께 개념을 익혀 볼게요.',
   video:'영상으로 오늘의 핵심 개념을 먼저 배워 볼게요.',
   concept:'영상에서 배운 내용을 에이아이 선생님과 함께 정리해 봐요.',
   train:'주어에 맞는 be동사를 두 단계로 훈련해요.',
   sort:'가볍게 몸풀기예요. 주어에 맞게 카드를 나눠 볼게요.',
   focus:'주어를 보고 알맞은 동사를 고르는 3단계 훈련이에요.',
-  checkup:'개념을 잘 잡았는지 확인해 볼게요.',
-  lv2:'어순 배열과 오류 수정을 섞어, 조금 더 어려운 문제로 실력을 올려 볼게요.',
-  write:'직접 영어로 써 보고, 에이아이 첨삭을 받아 볼게요.',
-  ai:'약한 부분을 분석해서 집중적으로 보충할게요.',
+  checkup:'개념을 잘 잡았는지 확인해 볼게요. 이제 혼자 풀어볼까요?',
+  lv2:'조금 더 어려운 문제로 실력을 올려 볼게요. 혼자 풀어볼까요?',
+  write:'직접 영어로 써 보고, 에이아이 첨삭을 받아 볼게요. 혼자 써볼까요?',
+  ai:'약한 부분을 분석해서 집중적으로 보충할게요. 혼자 풀어볼까요?',
   explain:'오늘 배운 be동사를, 이번엔 내가 선생님이 되어 베플리에게 설명해 볼게요. 설명하면 진짜 실력이 돼요!',
   report:'오늘 얼마나 성장했는지 확인해 볼게요.'
 };
 /* 읽어줄 단계명 (TTS 친화 한글 표기) */
 const STAGE_VOICE_NAME={
-  diag:'웜업 진단', learn:'개념 익히기', video:'개념 영상 강의', concept:'에이아이 개념 정리',
+  diag:'오늘의 워밍업', learn:'개념 익히기', video:'개념 영상 강의', concept:'에이아이 개념 정리',
   train:'스킬업', sort:'주어 분류 훈련', focus:'삼단계 주어 판단 훈련', checkup:'체크업',
   lv2:'레벨업', write:'서술형 대비 문제',
   ai:'에이아이 약점 클리닉', explain:'설명왕 도전', report:'학습 리포트'
@@ -936,6 +945,13 @@ async function aiGradeWrite(it,myAns){
   const m=raw.match(/\{[\s\S]*\}/); const obj=JSON.parse(m?m[0]:raw);
   return {correct:!!obj.correct, feedback:String(obj.feedback||'').trim(), errors:Array.isArray(obj.errors)?obj.errors:[]};
 }
+async function aiGradeExplain(question,modelAnswer,myAns){
+  const system='너는 be동사를 배우고 싶어하는 호기심 많은 친구 "베플리"야. 사용자(선생님 역할)가 아래 질문에 대해 한국어로 설명해주고 있어. 반드시 아래 JSON 형식으로만, 다른 말 없이 답해.\n{"reply":"3문장 이내 친근한 존댓말 반응. 설명이 충분하면 핵심을 짧게 정리해 확인해주고, 부족하면 정답을 바로 말하지 말고 스스로 떠올리게 하는 쉬운 질문 하나로 이끌어줘. 반말 금지, 마크다운 금지, 이모지 최대 1개.","understood":true 또는 false}';
+  const input='질문: "'+question+'"\n참고용 모범 설명: "'+modelAnswer+'"\n선생님의 설명: "'+myAns+'"';
+  const raw=await callGemini(system,input);
+  const m=raw.match(/\{[\s\S]*\}/); const obj=JSON.parse(m?m[0]:raw);
+  return {reply:String(obj.reply||'').trim(), understood:!!obj.understood};
+}
 
 function runQuiz(items,mode,onDone,opt={}){
   let idx=0; const wrong=[]; const results=[]; show();
@@ -1082,6 +1098,7 @@ function runAdaptive(poolKey,mode,onDone,opt){
     const w=document.createElement('div'); w.className='wrap';
     w.innerHTML='<div class="card"><div class="praise">오늘 목표 달성! 🎉</div><div class="scorebig">'+stageCorrect+' / '+stageTotal+'</div><div class="scoresub">정답률 '+acc+'% · '+(coreSize===3?'기초가 탄탄해 빠르게 통과했어요!':'잘 해냈어요!')+'</div><div class="qgrid">'+allResults.map(function(r,i){return '<div class="qg '+(r?'o':'x')+'">'+(i+1)+'</div>';}).join('')+'</div></div>';
     stageEl.innerHTML=''; stageEl.appendChild(w); stageEl.scrollTop=0;
+    stopSpeak(); speakChunks([{t:'수고했어요!'}]);
     window.__advNext=function(){ if(onDone)onDone(); };
     window.__advMore=function(){ const more=ordered?pickLv2(pool,used,Math.min(5,remain)):pickWeak(pool,used,Math.min(5,remain),missed); if(more.length) round(more,mode,'➕ 마스터 챌린지 · 더 풀기'); };
     if(remain>0) footer('<button class="btn ghost" onclick="window.__advMore()">➕ 더 풀기 (마스터 챌린지)</button><button class="btn primary" onclick="window.__advNext()">계속하기 ▶</button>');
@@ -1097,15 +1114,21 @@ RENDER.intro=()=>{ $('hudTitle').textContent='01. 인칭대명사 + be동사 현
     <div class="kicker" style="margin-top:6px">UNIT 01</div>
     <h2 style="font-size:clamp(1.5rem,3vw,2rem)">인칭대명사 + be동사 현재형</h2>
     <p class="lead">주어가 누구냐에 따라 <b>am · are · is</b> 가 달라져요.<br>오늘 40분, 많이 풀수록 강해집니다 💪</p></div>
+    <div class="card" style="margin-top:16px;text-align:left">
+      <div style="font-weight:850;font-size:1.05rem;margin-bottom:12px">🎯 오늘의 학습 목표</div>
+      <div class="goal-row"><span class="goal-ck">✓</span><div class="goal-tx"><b>be동사의 뜻을 구분해요</b><small>~이다 · ~에 있다</small></div></div>
+      <div class="goal-row"><span class="goal-ck">✓</span><div class="goal-tx"><b>주어에 맞게 am · are · is 를 골라 써요</b><small>I · 단수 · 복수</small></div></div>
+      <div class="goal-row"><span class="goal-ck">✓</span><div class="goal-tx"><b>틀린 be동사를 스스로 찾아 고쳐요</b><small>어법 판단까지</small></div></div>
+    </div>
     <div class="path">${STAGES.slice(1).map((s,i)=>`<div class="prow" onclick="bootAudio();go(${i+1})"><div class="ic" style="background:#e8f1fd">${s.ic}</div><div class="tx">${s.title}<small style="display:block;margin-top:3px;font-weight:650">${s.sub}</small></div><span style="margin-left:auto;color:#3182f6;font-weight:900;font-size:1.25rem">›</span></div>`).join('')}</div>`);
   footer(`<button class="btn primary" onclick="bootAudio();next()">학습 시작하기 ▶</button>`);
 };
-RENDER.diag=()=>{ $('hudTitle').textContent='Warm-up 진단'; try{loadVoices();}catch(e){}
+RENDER.diag=()=>{ $('hudTitle').textContent='오늘의 워밍업'; try{loadVoices();}catch(e){}
   const items=Q.diag; let i=0;
   function render(){ const it=items[i];
-    stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">🩺 Warm-up 진단</span><span class="qcount">${i+1} / ${items.length}</span></div>
+    stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">☀️ 오늘의 워밍업</span><span class="qcount">${i+1} / ${items.length}</span></div>
       <div class="card">
-        <div class="qhead"><span class="qbadge">${it.area}</span><span class="qtype">사전 확인</span></div>
+        <div class="qhead"><span class="qbadge">${it.area}</span><span class="qtype">가볍게</span></div>
         <div class="ko">${it.q}</div>
         ${it.sent?`<div class="qtext">${it.sent}</div>`:''}
         <div class="opts">${it.opts.map((o,k)=>`<button class="opt" data-v="${o.replace(/"/g,'&quot;')}"><span class="mk">${String.fromCharCode(65+k)}</span>${o}</button>`).join('')}</div>
@@ -1121,13 +1144,14 @@ RENDER.diag=()=>{ $('hudTitle').textContent='Warm-up 진단'; try{loadVoices();}
         else if(x===b && !dunno) x.classList.add('wrong');          // 틀리게 고른 것만 표시
         else x.classList.add('dim');
       });
-      // 피드백 문구(박스)는 화면에 표시하지 않고 음성으로만 안내. 옵션 색 표시·○✕ 마크는 유지.
+      // 워밍업이라 반복 음성 없이 ○✕·효과음·색 표시 + 짧은 텍스트 한 줄로 담백하게(§4-1).
+      const dfb=$('dfb');
       if(ok){
         sfx(true); showMark(true);
-        speakChunks([{t:'정답이에요! 잘 알고 있네요.'}]);
+        if(dfb){ dfb.className='fb show ok'; dfb.innerHTML='잘 알고 있네요 ✅'; }
       } else {
         if(!dunno) sfx(false);
-        speakChunks([{t:dunno?'솔직하게 말해줘서 좋아요. 오늘 함께 배워봐요.':'아직 안 배운 거라 괜찮아요. 오늘 함께 배워요.'}]);
+        if(dfb){ dfb.className='fb show no'; dfb.innerHTML=dunno?'솔직하게 답해줘서 좋아요 🙂 오늘 같이 배워요':'괜찮아요, 오늘 함께 잡으면 돼요'; }
       }
       footer(`<button class="btn primary" id="dNext">${i<items.length-1?'다음 ▶':'결과 보기 ▶'}</button>`);
       var n=$('dNext'); if(n)n.onclick=()=>{ i++; if(i<items.length)render(); else diagResult(); };
@@ -1135,7 +1159,7 @@ RENDER.diag=()=>{ $('hudTitle').textContent='Warm-up 진단'; try{loadVoices();}
   }
   render();
 };
-function diagResult(){ $('hudTitle').textContent='진단 결과 · 학습 경로';
+function diagResult(){ $('hudTitle').textContent='워밍업 결과 · 오늘의 목표';
   const areas=[['뜻','be동사의 뜻'],['1인칭','I + am'],['3인칭단수','단수 주어 + is'],['복수주어','복수 주어 + are']];
   const isOk=a=>{const v=S.skillStat[a[0]]; return !!(v&&v.correct>0);};
   const rows=areas.map((a,i)=>{ const ok=isOk(a);
@@ -1149,9 +1173,9 @@ function diagResult(){ $('hudTitle').textContent='진단 결과 · 학습 경로
   if(score===4) ruleFb='네 영역 모두 잘 알고 있어요! 특별히 부족한 곳은 없네요. 오늘은 배운 걸 실전 문제로 확실히 굳혀 봐요. 🎉';
   else if(score>=2) ruleFb=(strong.length?strong.join(', ')+'는 잘 알고 있어요. ':'기초는 잡혀 있어요. ')+(weak.length?weak.join(', ')+'는 아직 조금 헷갈려요. ':'')+'오늘은 이 부분을 집중해서 공부해 봐요!';
   else ruleFb='아직 낯선 부분이 많아요. 하지만 괜찮아요! 오늘 '+(weak.join(', ')||'핵심 개념')+'을 하나씩 공부하면 확 좋아질 거예요. 💪';
-  stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">🧭 학습 경로 예고</span></div><h2>오늘 이렇게 강해질 거예요</h2>
+  stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">🧭 오늘의 목표</span></div><h2>오늘 이 목표에 집중해요</h2>
     <div class="card">
-      <div style="font-weight:850;margin-bottom:12px">진단 결과 분석</div><div class="path diag-path">${rows}</div>
+      <div style="font-weight:850;margin-bottom:12px">워밍업으로 본 지금 상태</div><div class="path diag-path">${rows}</div>
       <div style="font-weight:850;margin:18px 0 8px">🤖 AI 선생님 코멘트</div>
       <div id="diagCoach" class="fb show" style="margin:0;line-height:1.4;text-align:left">AI 선생님이 <b>잘한 점·부족한 점·오늘 공부할 것</b>을 정리하고 있어요<span class="dots"></span></div></div>`);
   footer(`<button class="btn primary" onclick="next()">개념 익히기 ▶</button>`);
@@ -1160,11 +1184,10 @@ function diagResult(){ $('hudTitle').textContent='진단 결과 · 학습 경로
   const statusOf=k=>{const r=(S.diagAns||{})[k]; return r==='correct'?'맞음':r==='dunno'?'모름':'틀림';};
   const detail=areas.map(a=>`${a[1]}: ${statusOf(a[0])}`).join(', ');
   const sys='너는 한국 중학교 1학년에게 영어 be동사를 가르치는 따뜻한 AI 선생님이야. 학생의 사전 진단 결과를 보고 딱 3문장으로 짧게 코멘트해줘. 첫 문장은 ①잘한 점(이미 아는 부분) 칭찬, 둘째 문장은 ②부족한 점을 부드럽게, 셋째 문장은 ③오늘 무엇을 공부하면 좋을지. 각 항목당 한 문장씩. 모든 문장은 "~요"로 끝나는 친근한 존댓말로 쓰고 반말은 절대 쓰지 마. 시험이 아니라 공부 전 확인이니 점수로 압박하지 말고, 이모지는 최대 1개, 마크다운 기호(*, #)는 쓰지 마.';
-  // 음성 순서: ② 안내 음성(C, 텍스트 없이 음성만) → 끝나면 ④ AI 코멘트 음성
-  let cDone=false, commentText=null, commentSpoken=false;
+  // 화면 결과를 그대로 가리키는 안내 음성은 제거(§4-1 낭독 컷). 실질 코칭인 AI 코멘트 음성만 재생.
+  let commentText=null, commentSpoken=false;
   const clean=t=>String(t||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
-  function maybeSpeakComment(){ if(commentSpoken||!cDone||commentText===null)return; commentSpoken=true; try{ speakChunks([{t:clean(commentText)}]); }catch(e){} }
-  try{ stopSpeak(); speakChunks([{t:'나의 강점과 집중 영역을 아래 결과에서 확인해 보세요.'}], ()=>{ cDone=true; maybeSpeakComment(); }); }catch(e){ cDone=true; }
+  function maybeSpeakComment(){ if(commentSpoken||commentText===null)return; commentSpoken=true; try{ stopSpeak(); speakChunks([{t:clean(commentText)}]); }catch(e){} }
   try{
     streamGemini(sys, `진단 결과 (4문항 중 ${score}문항 정답): ${detail}`, (d,full)=>{ if(coach) coach.innerHTML=esc(full).replace(/\n/g,'<br>'); })
       .then(full=>{ const t=(full||'').trim(); commentText=t||ruleFb; if(!t&&coach)coach.innerHTML=esc(ruleFb); maybeSpeakComment(); })
@@ -1298,6 +1321,11 @@ function learnRoadmap(){
   var b=$('lnGo'); if(b)b.onclick=()=>{ bootAudio(); stopSpeak(); RENDER.video(); };
 }
 function learnAfterVideo(){ if(LEARN_ACTIVE) learnBridge(); else next(); }
+function learnVideoCheck(){
+  stopSpeak();
+  const v=$('vid'); if(v){ try{v.pause();}catch(e){} }
+  runQuiz(Q.videoCheck,'teach',learnAfterVideo,{label:'요지 확인',kicker:'🎬 영상 요지 확인'});
+}
 function learnBridge(){
   $('hudTitle').textContent='개념 익히기';
   stageEl.innerHTML=wrapHTML(`${learnChip(2)}
@@ -1307,7 +1335,7 @@ function learnBridge(){
       <div class="ko" style="color:var(--muted)">방금 배운 개념을 질문으로 확인해요.</div>
     </div>`);
   stageEl.scrollTop=0;
-  stopSpeak(); speakChunks([{t:'영상 잘 봤어요? 이제 에이아이 선생님과 개념을 익혀 볼게요.'}]);
+  stopSpeak();
   footer(`<button class="btn primary" id="lnGo2">계속 ▶</button>`);
   var b=$('lnGo2'); if(b)b.onclick=()=>{ stopSpeak(); RENDER.concept(); };
 }
@@ -1322,8 +1350,8 @@ RENDER.video=()=>{ $('hudTitle').textContent='개념 익히기';
     var pk=$('vidpick'); if(pk)pk.onchange=function(e){var file=e.target.files&&e.target.files[0]; if(file){try{v.src=URL.createObjectURL(file);}catch(_){} var f=$('vidfb'); if(f)f.style.display='none'; if(v.load)v.load();}};
     var playVid=function(){ try{var _p=v.play&&v.play(); if(_p&&_p.catch)_p.catch(function(){ var once=function(){ v.muted=false; try{v.play&&v.play().catch(function(){});}catch(_){} }; document.addEventListener('pointerdown',once,{once:true}); });}catch(e){} };
     // 안내 음성 → 끝나면 영상 자동 재생
-    stopSpeak(); speakChunks([{t:'영상을 보면서 개념 노트를 완성해 보세요.'}], playVid); }
-  footer(`<button class="btn ghost" onclick="learnAfterVideo()">건너뛰기</button><button class="btn primary" onclick="learnAfterVideo()">영상 다 봤어요 ▶</button>`);
+    stopSpeak(); speakChunks([{t:'영상을 보면서 핵심 내용을 잘 기억해 두세요. 다 보면 짧게 확인해 볼게요.'}], playVid); }
+  footer(`<button class="btn ghost" onclick="learnVideoCheck()">건너뛰기</button><button class="btn primary" onclick="learnVideoCheck()">영상 다 봤어요 ▶</button>`);
 };
 /* ===== Skill Up : 2파트(몸풀기 분류 → 3단계 판단) 오케스트레이터 ===== */
 let TRAIN_ACTIVE=false;
@@ -1359,7 +1387,7 @@ function trainBridge(){
       <div class="ko" style="color:var(--muted)">주어 찾기 → 단수·복수 → be동사, 순서대로!</div>
     </div>`);
   stageEl.scrollTop=0;
-  stopSpeak(); speakChunks([{t:'좋아요, 감 잡았죠? 이제 정밀하게 판단해 볼게요.'}]);
+  stopSpeak();
   footer(`<button class="btn primary" id="trGo2">계속 ▶</button>`);
   var b=$('trGo2'); if(b)b.onclick=()=>{ stopSpeak(); RENDER.focus(); };
 }
@@ -1418,7 +1446,7 @@ RENDER.sort=()=>{ $('hudTitle').textContent='Skill Up';
     if(tm)tm.classList.toggle('danger',timeLeft<=6&&timeLeft>0);
     if(S.soundOn&&timeLeft<=5&&timeLeft>0)try{tone(880,0,.07,'square',.13);}catch(e){}
     if(timeLeft<=0){timeUp=true;clearInterval(timer);onTimeUp();} },1000); };
-  speakChunks([{t:'첫번쨰 훈련! 20초 안에 주어 카드를, 알맞은 be 동사 상자에 넣어 보세요. Ready! Go!'}], startTimer);
+  speakChunks([{t:'준비, 시작!'}], startTimer);
   setTimeout(startTimer,12000);  // 안전장치: 음성이 끝나면 콜백으로 띵띵+타이머 시작(폴백은 넉넉히)
   footer(`<button class="btn primary" id="snx" disabled>② 정밀 판단으로 ▶</button>`);
   $('snx').onclick=()=>{ if(timer)clearInterval(timer); trainAfterSort(); };
@@ -1527,7 +1555,6 @@ RENDER.focus=()=>{
     </div></div>`;
     stageEl.scrollTop=0;
     stopSpeak();
-    speakChunks([{t:'이제 알겠죠? 이번엔 직접 풀어볼게요!'}]);
     footer(`<button class="btn primary" id="focusGoSolo">직접 풀어볼게요 ▶</button>`);
     var b=$('focusGoSolo'); if(b)b.onclick=()=>render();
   }
@@ -1678,7 +1705,10 @@ RENDER.checkup=()=>{ $('hudTitle').textContent='Check Up';
 };
 RENDER.buildup=()=>{ $('hudTitle').textContent='Build Up'; runAdaptive('buildup','drill',next,{kicker:'🧱 Build Up · 적응형 어순 배열',label:'Q'}); };
 RENDER.lv2=()=>{ $('hudTitle').textContent='Level Up'; runAdaptive('lv2','drill',next,{kicker:'🔥 Level Up · 어순 배열 + 오류 수정',label:'Q'}); };
-RENDER.write=()=>{ $('hudTitle').textContent='서술형 대비 문제'; runQuiz(Q.write.slice(0,8),'teach',next,{kicker:'📝 서술형 · AI 첨삭',label:'서술형'}); };
+RENDER.write=()=>{ $('hudTitle').textContent='서술형 대비 문제';
+  runQuiz(Q.write.slice(0,8),'teach',null,{kicker:'📝 서술형 · AI 첨삭',label:'서술형',
+    onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], next); }});
+};
 RENDER.naesin=()=>{ $('hudTitle').textContent='내신 대비 문제'; runAdaptive('naesin','drill',next,{kicker:'🏫 내신 대비 · 적응형 실전',label:'Q'}); };
 RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
   stageEl.innerHTML=wrapHTML(`<div class="ai-think"><div class="aiface">🤖</div>
@@ -1715,49 +1745,68 @@ RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
       .catch(()=>{ if(__coach)__coach.textContent='분석 코멘트를 불러오지 못했어요. 아래 문제로 바로 보충해 볼까요? 💪'; });
   },1900);
 };
-window.__ra=()=>runQuiz((window.__clinic&&window.__clinic.length?window.__clinic:Q.ai),'teach',next,{kicker:'🤖 AI 클리닉 · 약점 집중',label:'AI'});
+window.__ra=()=>runQuiz((window.__clinic&&window.__clinic.length?window.__clinic:Q.ai),'teach',null,
+  {kicker:'🤖 AI 클리닉 · 약점 집중',label:'AI',
+   onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], next); }});
 /* ===== 설명왕 도전 : be동사를 AI 친구 '베플리'에게 한국어로 설명(가르치며 배우기) ===== */
 RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
   const QS=[
-    {t:'be동사가 뭐예요? 문장에서 어떤 일을 해요?', v:'be동사가 뭐예요? 문장에서 어떤 일을 해요?'},
-    {t:'am, is, are는 어떻게 구분해서 써요? 저는 늘 헷갈려요 😥', v:'am, is, are는 어떻게 구분해서 써요? 저는 늘 헷갈려요.'},
-    {t:"오늘 배운 be동사, 딱 한 문장 예시로 만들어 보자! ‘나는 학생이다’는 영어로 어떻게 말할까요?", v:'오늘 배운 be동사로 예시를 만들어 봐요. 나는 학생이다는 영어로 어떻게 말할까요?'}
+    {t:'be동사가 뭐예요? 문장에서 어떤 일을 해요?', v:'be동사가 뭐예요? 문장에서 어떤 일을 해요?',
+     sol:'be동사는 주어 뒤에서 "~이다" 또는 "~에 있다"를 나타내는 동사예요(am/is/are).'},
+    {t:'am, is, are는 어떻게 구분해서 써요? 저는 늘 헷갈려요 😥', v:'am, is, are는 어떻게 구분해서 써요? 저는 늘 헷갈려요.',
+     sol:'I는 am, 단수 주어는 is, 복수 주어(You/We/They 등)는 are를 써요.'},
+    {t:"오늘 배운 be동사, 딱 한 문장 예시로 만들어 보자! ‘나는 학생이다’는 영어로 어떻게 말할까요?", v:'오늘 배운 be동사로 예시를 만들어 봐요. 나는 학생이다는 영어로 어떻게 말할까요?',
+     sol:'I am a student.'}
   ];
-  let qi=0, awaiting=false;
-  const sys='너는 be동사를 배우고 싶어하는 호기심 많은 친구 "베플리"야. 사용자가 be동사를 한국어로 설명해 주고 있어. 사용자의 설명에 친근한 존댓말로 3문장 이내로 반응해줘. 첫째, 반갑게 구체적으로 반응하기. 둘째, 설명이 맞으면 핵심을 짧게 정리해 확인해주기. 셋째, 설명이 부족하거나 틀리면 정답을 바로 말하지 말고 스스로 떠올리게 하는 쉬운 질문 하나로 이끌어주기. 사용자가 모른다고 하면 힌트 질문을 주고, 그래도 어려워하면 짧은 예시로 알려줘. 반말 금지, 마크다운 기호는 쓰지 마, 이모지는 최대 1개.';
+  let qi=0, awaiting=false, attempts=0;
   const BEPLLI='<svg viewBox="0 0 64 64" width="100%" height="100%" style="display:block"><circle cx="18" cy="15" r="8" fill="#7a4a28"/><circle cx="46" cy="15" r="8" fill="#7a4a28"/><circle cx="18" cy="15" r="4" fill="#5c3720"/><circle cx="46" cy="15" r="4" fill="#5c3720"/><path d="M12 30 A20 20 0 0 1 52 30 L52 41 A20 18 0 0 1 12 41 Z" fill="#8a5a34"/><ellipse cx="32" cy="35" rx="16" ry="15" fill="#ffe3c8"/><path d="M22 25 Q28 16 40 23 Q36 25 34 28 Q30 23 22 25 Z" fill="#ffd21f"/><circle cx="26" cy="34" r="2.5" fill="#2a2320"/><circle cx="38" cy="34" r="2.5" fill="#2a2320"/><circle cx="22" cy="40" r="3" fill="#ff9db0" opacity=".65"/><circle cx="42" cy="40" r="3" fill="#ff9db0" opacity=".65"/><path d="M28 40 Q32 46 36 40 Z" fill="#c0392b"/><path d="M14 35 Q13 41 20 43" stroke="#3a2a1e" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="20" cy="43" r="1.9" fill="#3a2a1e"/></svg>';
   function frame(inner,talking){ stageEl.innerHTML=wrapHTML(`<div class="aitalk"><div class="ai-head"><div class="aiface ${talking?'talking':''}" id="face" style="background:#fff3e0;overflow:hidden;padding:0">${BEPLLI}</div><div class="ai-meta"><div class="ainame">호기심 친구 · 베플리</div><div class="wave ${talking?'on':''}">${'<i></i>'.repeat(5)}</div></div></div>${inner}</div>`); }
   function say(chunks,done){ const f=$('face'); if(f)f.classList.add('talking'); speakChunks(chunks||[],()=>{ if(f)f.classList.remove('talking'); done&&done(); }); }
   function showType(onResult){ const out=$('exOut'); if(!out||document.getElementById('exIn'))return; out.classList.add('show'); out.style.display='block';
     out.innerHTML=(out.innerHTML||'')+'<div style="margin-top:10px"><input id="exIn" class="tin" style="margin-top:0" placeholder="여기에 설명을 입력하세요" autocomplete="off"><button class="btn ghost" id="exGo" style="margin-top:8px">보내기</button></div>';
     const go=()=>{ const el=document.getElementById('exIn'); onResult(el?el.value:''); }; var g=document.getElementById('exGo'); if(g)g.onclick=go; var ib=document.getElementById('exIn'); if(ib)ib.addEventListener('keydown',e=>{if(e.key==='Enter')go();}); }
-  function micState(on){ const m=$('exMic'), h=$('micHint'); if(m)m.classList.toggle('listening',!!on); if(h)h.textContent=on?'듣고 있어요…':'탭해서 말하기'; }
-  function listenKo(onResult){ const SR=window.SpeechRecognition||window.webkitSpeechRecognition; const out=$('exOut');
+  // 버튼 방식 녹음: 탭1=시작(무음이어도 안 끊김), 탭2=종료·제출 — 자동 무음감지 종료 제거
+  let recording=false, recInstance=null, recBuf='';
+  function micState(on){ const m=$('exMic'), h=$('micHint'); if(m){m.classList.toggle('listening',!!on); m.textContent=on?'⏹':'🎤';} if(h)h.textContent=on?'다 말했으면 눌러서 제출':'탭해서 말하기 시작'; }
+  function startRec(onResult){ const SR=window.SpeechRecognition||window.webkitSpeechRecognition; const out=$('exOut');
     if(!SR){ if(out){out.className='fb show';out.innerHTML='이 브라우저는 음성 인식을 지원하지 않아요. 아래에 <b>입력</b>해도 돼요.';} showType(onResult); return; }
-    try{ const rec=new SR(); rec.lang='ko-KR'; rec.interimResults=false; rec.maxAlternatives=1;
-      micState(true); if(out){out.className='';out.innerHTML='';}
-      rec.onresult=e=>{ micState(false); const txt=e.results&&e.results[0]&&e.results[0][0]?e.results[0][0].transcript:''; onResult(txt); };
-      rec.onerror=(ev)=>{ micState(false); if(out){out.className='fb show no';out.innerHTML=(ev&&ev.error==='not-allowed')?'마이크 권한이 꺼져 있어요. 주소창의 🎤에서 허용한 뒤 다시 눌러 주세요. (아래에 <b>입력</b>도 가능)':'잘 못 들었어요. 마이크를 다시 눌러 말해 주세요.';} if(ev&&ev.error==='not-allowed')showType(onResult); };
-      rec.onend=()=>micState(false);
+    try{ const rec=new SR(); rec.lang='ko-KR'; rec.continuous=true; rec.interimResults=false; rec.maxAlternatives=1;
+      recBuf=''; recording=true; recInstance=rec; micState(true); if(out){out.className='';out.innerHTML='';}
+      rec.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) recBuf+=e.results[i][0].transcript; } };
+      rec.onerror=(ev)=>{ recording=false; recInstance=null; micState(false); if(out){out.className='fb show no';out.innerHTML=(ev&&ev.error==='not-allowed')?'마이크 권한이 꺼져 있어요. 주소창의 🎤에서 허용한 뒤 다시 눌러 주세요. (아래에 <b>입력</b>도 가능)':'잘 못 들었어요. 마이크를 다시 눌러 말해 주세요.';} if(ev&&ev.error==='not-allowed')showType(onResult); };
+      rec.onend=()=>{ recording=false; recInstance=null; micState(false); const txt=recBuf.trim(); recBuf=''; if(txt)onResult(txt); };
       rec.start();
-    }catch(e){ micState(false); showType(onResult); } }
-  function ask(){ awaiting=false;
+    }catch(e){ recording=false; recInstance=null; micState(false); showType(onResult); } }
+  function toggleRec(onResult){ if(recording){ if(recInstance)try{recInstance.stop();}catch(e){} } else { startRec(onResult); } }
+  function ask(){ awaiting=false; attempts=0;
     frame(`<div class="ctalk-body" style="font-size:clamp(1.1rem,2.2vw,1.4rem)">${QS[qi].t}</div>
       <div style="font-size:.82rem;color:var(--muted);margin-top:8px">질문 ${qi+1} / ${QS.length} · 말로 설명해 주세요</div>
-      <div class="mic-wrap"><button class="mic-btn" id="exMic" aria-label="말하기">🎤</button><div class="mic-hint" id="micHint">탭해서 말하기</div></div>
+      <div class="mic-wrap"><button class="mic-btn" id="exMic" aria-label="말하기">🎤</button><div class="mic-hint" id="micHint">탭해서 말하기 시작</div></div>
       <div class="fb" id="exOut"></div>`,true);
     say([{t:QS[qi].v}]);
     footer(`<button class="btn ghost" id="exSkip">${qi<QS.length-1?'다음 질문 ▶':'끝내기 ▶'}</button>`);
     var sk=$('exSkip'); if(sk)sk.onclick=nextQ;
-    var m=$('exMic'); if(m)m.onclick=()=>listenKo(handle); }
-  function handle(answer){ if(awaiting)return; answer=String(answer||'').trim(); if(!answer)return; awaiting=true;
+    var m=$('exMic'); if(m)m.onclick=()=>toggleRec(handle); }
+  function handle(answer){ answer=String(answer||'').trim(); if(!answer||awaiting)return; awaiting=true; attempts++;
     const out=$('exOut'); if(out){ out.className='fb show'; out.innerHTML='<div style="opacity:.8">나: <b>'+esc(answer)+'</b></div><div style="margin-top:8px" id="exReply">베플리가 듣고 있어요… ⏳</div>'; }
-    streamGemini(sys, `현재 질문: "${QS[qi].t}"\n사용자(선생님)의 설명: "${answer}"`, (d,full)=>{ const r=document.getElementById('exReply'); if(r)r.innerHTML=esc(full).replace(/\n/g,'<br>'); })
-      .then(full=>{ const t=(full||'').trim()||'오~ 설명 고마워요! 조금만 더 알려주면 완벽할 것 같아요.'; const r=document.getElementById('exReply'); if(r)r.innerHTML=esc(t).replace(/\n/g,'<br>'); stopSpeak(); say([{t:t.replace(/<[^>]+>/g,'')}]); awaiting=false; reask(); })
-      .catch(()=>{ const r=document.getElementById('exReply'); if(r)r.innerHTML='앗, 베플리가 잠깐 딴생각을 했어요. 다시 설명해 줄래요?'; awaiting=false; reask(); }); }
-  function reask(){ footer(`<button class="btn ghost" id="exAgain">🎤 더 설명하기</button><button class="btn primary" id="exNext">${qi<QS.length-1?'다음 질문 ▶':'설명왕 완료 ▶'}</button>`);
-    var a=$('exAgain'); if(a)a.onclick=()=>{ const o=$('exOut'); if(o){o.className='fb';o.innerHTML='';} listenKo(handle); };
-    var n=$('exNext'); if(n)n.onclick=nextQ; }
+    aiGradeExplain(QS[qi].t, QS[qi].sol, answer)
+      .then(({reply,understood})=>resolve(understood,reply,answer))
+      .catch(()=>resolve(false,'앗, 베플리가 잠깐 딴생각을 했어요. 다시 설명해 줄래요?',answer)); }
+  function resolve(understood,replyText,answer){
+    const capped=attempts>=3, done=understood||capped;
+    const out=$('exOut'); if(out)out.innerHTML='<div style="opacity:.8">나: <b>'+esc(answer)+'</b></div><div style="margin-top:8px">'+esc(replyText).replace(/\n/g,'<br>')+(capped&&!understood?'<br><br>같이 정리해볼까요? <b>'+esc(QS[qi].sol)+'</b>':'')+'</div>';
+    stopSpeak(); say([{t:replyText.replace(/<[^>]+>/g,'')}]);
+    awaiting=false;
+    if(done){
+      record('설명하기',understood); grade(understood,10); sfx(understood); showMark(understood);
+      S.history.push({stage:'🗣️ 설명왕',type:'설명하기',question:QS[qi].t,myAnswer:answer,solution:QS[qi].sol,correct:understood});
+      footer(`<button class="btn primary" id="exNext">${qi<QS.length-1?'다음 질문 ▶':'설명왕 완료 ▶'}</button>`);
+      var n=$('exNext'); if(n)n.onclick=nextQ;
+    } else {
+      footer(`<button class="btn primary" id="exAgain">🎤 다시 설명하기</button>`);
+      var a=$('exAgain'); if(a)a.onclick=()=>toggleRec(handle);
+    }
+  }
   function nextQ(){ stopSpeak(); qi++; if(qi<QS.length) ask(); else finish(); }
   function finish(){ frame(`<div class="ctalk-body" style="text-align:center">설명해 줘서 고마워요! 덕분에 be동사를 잘 알겠어요 😊<br><b>가르치면서 내 실력도 쑥 올랐을 거예요!</b></div>`,true);
     stopSpeak(); say([{t:'설명해 줘서 고마워요! 가르치면서 실력이 더 단단해졌을 거예요.'}]);
@@ -1767,10 +1816,10 @@ RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
 RENDER.report=()=>{ $('hudTitle').textContent='학습 리포트';
   confettiBurst(26);
   const pct=Math.round(S.totalCorrect/Math.max(S.totalGraded,1)*100);
-  const BUCKET={'1인칭':'I + am','3인칭단수':'단수 주어 + is','복수주어':'복수 주어 + are','1인칭복수':'복수 주어 + are','2인칭':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','인칭대명사':'인칭대명사 (He/She/It)','주어-be일치':'주어-be 일치','뜻':'be동사 뜻'};
+  const BUCKET={'1인칭':'I + am','3인칭단수':'단수 주어 + is','복수주어':'복수 주어 + are','1인칭복수':'복수 주어 + are','2인칭':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','인칭대명사':'인칭대명사 (He/She/It)','주어-be일치':'주어-be 일치','뜻':'be동사 뜻','설명하기':'설명왕 (가르치기)'};
   const agg={};
   Object.entries(S.skillStat).forEach(([k,v])=>{ if(k==='개념')return; const b=BUCKET[k]||'응용·실전 유형'; if(!agg[b])agg[b]={n:0,c:0}; agg[b].n+=v.n; agg[b].c+=v.correct; });
-  const order=['I + am','단수 주어 + is','복수 주어 + are','be동사 뜻','줄임말 (I’m, She’s)','인칭대명사 (He/She/It)','주어-be 일치','응용·실전 유형'];
+  const order=['I + am','단수 주어 + is','복수 주어 + are','be동사 뜻','줄임말 (I’m, She’s)','인칭대명사 (He/She/It)','주어-be 일치','설명왕 (가르치기)','응용·실전 유형'];
   const skills=order.filter(b=>agg[b]).map(b=>({k:b,r:Math.round(agg[b].c/agg[b].n*100),n:agg[b].n}));
   const ranked=skills.slice().sort((a,b)=>b.r-a.r);
   const strong=ranked.slice(0,2),weak=ranked.slice(-2).reverse();
@@ -1793,11 +1842,21 @@ function renderWrongNote(){
   return '<div class="card" style="margin-top:14px"><div style="font-weight:850;margin-bottom:6px">📝 오답 노트 <span style="font-size:.78rem;color:var(--muted);font-weight:700">· 14일 안에 다시 풀어 점수를 올려요</span></div>'+show+(wrongs.length>12?'<div style="font-size:.82rem;color:var(--muted);margin-top:8px">외 '+(wrongs.length-12)+'개</div>':'')+'<button class="btn ghost" style="margin-top:12px" onclick="window.__redo14()">오답만 다시 풀기 (14일)</button></div>';
 }
 window.__redo14=function(){ toast('오답 14일 재도전은 다음 버전에서 제공돼요 😊'); };
-function labelSkill(k){return ({'1인칭':'1인칭 I + am','1인칭복수':'1인칭 복수 We + are','2인칭':'2인칭 You + are','3인칭단수':'3인칭 단수 + is','복수주어':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','함정':'헷갈리는 함정','변별':'고난도 변별','공통':'공통 빈칸','의문문':'의문문','대답':'의문문 대답','어법오류':'어법 오류 찾기','어법정답':'어법 옳은 것','뜻':'be동사 뜻'})[k]||k;}
+function labelSkill(k){return ({'1인칭':'1인칭 I + am','1인칭복수':'1인칭 복수 We + are','2인칭':'2인칭 You + are','3인칭단수':'3인칭 단수 + is','복수주어':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','함정':'헷갈리는 함정','변별':'고난도 변별','공통':'공통 빈칸','의문문':'의문문','대답':'의문문 대답','어법오류':'어법 오류 찾기','어법정답':'어법 옳은 것','뜻':'be동사 뜻','설명하기':'설명왕 (가르치기)'})[k]||k;}
 
 /* boot */
 window.DATA=Q;window.STATE=S;window.RENDER=RENDER;window.STAGES=STAGES;
 renderSteps(); RENDER.intro();
+if(REVIEW_MODE){
+  const rb=document.createElement('button');
+  rb.textContent='⏭ 다음 단계(검수)';
+  rb.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;background:#191f28;color:#fff;border:none;border-radius:9999px;padding:8px 14px;font-size:12px;font-weight:700;opacity:.85;cursor:pointer';
+  rb.onclick=()=>{
+    try{stopSpeak();}catch(e){}
+    if(S.stageIdx+1<STAGES.length) next(); else toast('마지막 단계예요');
+  };
+  document.body.appendChild(rb);
+}
 </script>
 </body>
 </html>
