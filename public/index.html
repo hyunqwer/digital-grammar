@@ -347,15 +347,12 @@
    ============================================================ */
 const STAGES=[
   {key:'intro',label:'시작'},
-  {key:'diag',label:'진단',ic:'🩺',title:'오늘의 워밍업',sub:'가볍게 얼마나 아는지 확인해요',color:'#3182f6'},
   {key:'learn',label:'개념 익히기',ic:'💡',title:'개념 익히기',sub:'영상과 AI로 핵심 개념을 익혀요',color:'#3182f6'},
   {key:'train',label:'Skill Up',ic:'🎯',title:'Skill Up',sub:'주어에 맞는 be동사를 2단계로 훈련해요',color:'#3182f6'},
-  {key:'checkup',label:'Check Up',ic:'✏️',title:'Check Up',sub:'개념 확인으로 개념을 잡아봐요',color:'#3182f6'},
-  {key:'lv2',label:'Level Up',ic:'🔥',title:'Level Up',sub:'심화 · 어순 배열 + 오류 수정',color:'#ff7a59'},
+  {key:'checkup',label:'실전 문제',ic:'✏️',title:'실전 문제',sub:'개념 확인부터 심화까지 이어서 풀어요',color:'#3182f6'},
   {key:'write',label:'서술형',ic:'📝',title:'서술형 대비 문제',sub:'직접 영작 + AI 첨삭',color:'#3182f6'},
-  {key:'ai',label:'AI 클리닉',ic:'🤖',title:'AI 약점 클리닉',sub:'내 약점을 분석해 집중 보충해요',color:'#3182f6'},
   {key:'explain',label:'설명왕',ic:'🗣️',title:'설명왕 도전',sub:'배운 걸 AI 친구에게 설명해요',color:'#3182f6'},
-  {key:'report',label:'리포트',ic:'📊',title:'학습 리포트',sub:'오늘의 성장을 확인해요',color:'#3182f6'}
+  {key:'report',label:'리포트',ic:'📊',title:'학습 리포트',sub:'분석 · 보충 · 성장으로 정리해요',color:'#3182f6'}
 ];
 
 /* ---------- 문항 (첨부 교재 예문 반영) ---------- */
@@ -655,7 +652,7 @@ function speakChunks(chunks,done){ stopSpeak(); const tok=__ttsToken; const list
 
 /* ---------- HUD ---------- */
 function syncHud(){ $('pts').textContent=S.pts;$('combo').textContent=S.combo; }
-function phaseOf(i){const k=STAGES[i].key; if(k==='intro'||k==='diag')return '① 준비'; if(k==='video'||k==='concept'||k==='learn')return '② 개념'; if(k==='sort'||k==='focus'||k==='train')return '③ 훈련'; if(k==='report')return '⑤ 리포트'; return '④ 실전';}
+function phaseOf(i){const k=STAGES[i].key; if(k==='intro')return '① 준비'; if(k==='learn')return '② 개념'; if(k==='train')return '③ 훈련'; if(k==='report')return '⑤ 리포트'; return '④ 실전';}
 function renderSteps(){ $('steps').innerHTML=`<span>${phaseOf(S.stageIdx)}</span><span style="opacity:.6">·</span><span>STEP ${S.stageIdx+1} / ${STAGES.length}</span>`; }
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1400);}
 function showMark(ok){const ov=$('overlay'),m=$('ovmark');m.className='ovmark '+(ok?'o':'x');m.textContent=ok?'○':'✕';ov.classList.remove('show');void ov.offsetWidth;ov.classList.add('show');}
@@ -681,26 +678,23 @@ function go(i){ S.stageIdx=i; renderSteps(); syncHud(); stageEl.scrollTop=0;
 const next=()=>go(S.stageIdx+1);
 /* 단계 전환 화면에서 읽어줄 '영역 안내' 음성 (담백하게 한 문장) */
 const STAGE_VOICE={
-  diag:'오늘 배울 걸 가볍게 워밍업해 볼까요? 편하게 답하면 돼요.',
   learn:'먼저 영상으로 개념을 배우고, 에이아이 선생님과 함께 개념을 익혀 볼게요.',
   video:'영상으로 오늘의 핵심 개념을 먼저 배워 볼게요.',
   concept:'영상에서 배운 내용을 에이아이 선생님과 함께 정리해 봐요.',
   train:'주어에 맞는 be동사를 두 단계로 훈련해요.',
   sort:'가볍게 몸풀기예요. 주어에 맞게 카드를 나눠 볼게요.',
   focus:'주어를 보고 알맞은 동사를 고르는 3단계 훈련이에요.',
-  checkup:'개념을 잘 잡았는지 확인해 볼게요. 이제 혼자 풀어볼까요?',
-  lv2:'조금 더 어려운 문제로 실력을 올려 볼게요. 혼자 풀어볼까요?',
+  checkup:'개념 확인부터 조금 어려운 문제까지, 이어서 풀어볼게요. 혼자 풀어볼까요?',
   write:'직접 영어로 써 보고, 에이아이 첨삭을 받아 볼게요. 혼자 써볼까요?',
-  ai:'약한 부분을 분석해서 집중적으로 보충할게요. 혼자 풀어볼까요?',
   explain:'오늘 배운 be동사를, 이번엔 내가 선생님이 되어 베플리에게 설명해 볼게요. 설명하면 진짜 실력이 돼요!',
   report:'오늘 얼마나 성장했는지 확인해 볼게요.'
 };
 /* 읽어줄 단계명 (TTS 친화 한글 표기) */
 const STAGE_VOICE_NAME={
-  diag:'오늘의 워밍업', learn:'개념 익히기', video:'개념 영상 강의', concept:'에이아이 개념 정리',
-  train:'스킬업', sort:'주어 분류 훈련', focus:'삼단계 주어 판단 훈련', checkup:'체크업',
-  lv2:'레벨업', write:'서술형 대비 문제',
-  ai:'에이아이 약점 클리닉', explain:'설명왕 도전', report:'학습 리포트'
+  learn:'개념 익히기', video:'개념 영상 강의', concept:'에이아이 개념 정리',
+  train:'스킬업', sort:'주어 분류 훈련', focus:'삼단계 주어 판단 훈련', checkup:'실전 문제',
+  write:'서술형 대비 문제',
+  explain:'설명왕 도전', report:'학습 리포트'
 };
 function splash(st,cb){
   const idx=STAGES.findIndex(s=>s.key===st.key);
@@ -1121,7 +1115,7 @@ RENDER.intro=()=>{ $('hudTitle').textContent='01. 인칭대명사 + be동사 현
       <div class="goal-row"><span class="goal-ck">✓</span><div class="goal-tx"><b>틀린 be동사를 스스로 찾아 고쳐요</b><small>어법 판단까지</small></div></div>
     </div>
     <div class="path">${STAGES.slice(1).map((s,i)=>`<div class="prow" onclick="bootAudio();go(${i+1})"><div class="ic" style="background:#e8f1fd">${s.ic}</div><div class="tx">${s.title}<small style="display:block;margin-top:3px;font-weight:650">${s.sub}</small></div><span style="margin-left:auto;color:#3182f6;font-weight:900;font-size:1.25rem">›</span></div>`).join('')}</div>`);
-  footer(`<button class="btn primary" onclick="bootAudio();next()">학습 시작하기 ▶</button>`);
+  footer(`<button class="btn primary" onclick="bootAudio();RENDER.diag()">학습 시작하기 ▶</button>`);
 };
 RENDER.diag=()=>{ $('hudTitle').textContent='오늘의 워밍업'; try{loadVoices();}catch(e){}
   const items=Q.diag; let i=0;
@@ -1695,13 +1689,10 @@ RENDER.focus=()=>{
   }
   showMethodIntro();
 };
-RENDER.checkup=()=>{ $('hudTitle').textContent='Check Up';
+RENDER.checkup=()=>{ $('hudTitle').textContent='실전 문제';
   runAdaptive('checkup','teach', ()=>{
-    // 현재 Check Up(적응형) 뒤에 Level Up의 어순 배열 5문항을 이어서 출제
-    const orderQs=shuffle(Q.lv2.filter(it=>it.type==='order')).slice(0,5);
-    if(orderQs.length) runQuiz(orderQs,'teach',next,{kicker:'✏️ Check Up · 어순 배열',label:'Q'});
-    else next();
-  }, {kicker:'✏️ Check Up · 적응형',label:'Q'});
+    runAdaptive('lv2','drill', next, {kicker:'🔥 실전 문제 · 심화',label:'Q'});
+  }, {kicker:'✏️ 실전 문제 · 기본',label:'Q'});
 };
 RENDER.buildup=()=>{ $('hudTitle').textContent='Build Up'; runAdaptive('buildup','drill',next,{kicker:'🧱 Build Up · 적응형 어순 배열',label:'Q'}); };
 RENDER.lv2=()=>{ $('hudTitle').textContent='Level Up'; runAdaptive('lv2','drill',next,{kicker:'🔥 Level Up · 어순 배열 + 오류 수정',label:'Q'}); };
@@ -1710,7 +1701,7 @@ RENDER.write=()=>{ $('hudTitle').textContent='서술형 대비 문제';
     onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], next); }});
 };
 RENDER.naesin=()=>{ $('hudTitle').textContent='내신 대비 문제'; runAdaptive('naesin','drill',next,{kicker:'🏫 내신 대비 · 적응형 실전',label:'Q'}); };
-RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
+function reportAnalysis(){ $('hudTitle').textContent='학습 리포트';
   stageEl.innerHTML=wrapHTML(`<div class="ai-think"><div class="aiface">🤖</div>
     <div style="font-weight:850;font-size:1.1rem">윤하나 친구 약점 분석 중<span class="dots"></span></div>
     <div style="color:var(--muted);font-size:.85rem;margin-top:8px">학습 이력에서 보충이 필요한 유형을 찾고 있어요</div></div>`);
@@ -1720,7 +1711,6 @@ RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
     const stats=Object.entries(S.skillStat).filter(([k,v])=>k!=='개념'&&v.n>0).map(([k,v])=>({k,acc:v.correct/v.n,n:v.n}));
     stats.sort((a,b)=> a.acc-b.acc || b.n-a.n);
     const weak=stats.filter(s=>s.acc<1).slice(0,2);
-    const strong=stats.filter(s=>s.acc>=0.8).slice(-2).reverse();
     const bank=[].concat(Q.checkup,Q.lv2,Q.naesin,Q.ai);
     const weakSkills=weak.map(s=>s.k);
     let pool=sh(bank.filter(it=>weakSkills.indexOf(it.skill)>=0));
@@ -1728,13 +1718,9 @@ RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
     let items=pool.slice(0,count);
     if(items.length<3) items=items.concat(sh(bank).slice(0,3-items.length));
     window.__clinic=items;
-    const weakTxt=weak.length? weak.map(s=>labelSkill(s.k)+' ('+Math.round(s.acc*100)+'%)').join(' · ') : '특별한 약점이 없어요!';
-    const strongTxt=strong.length? strong.map(s=>labelSkill(s.k)).join(' · ') : '-';
-    stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">🤖 AI 약점 클리닉</span></div>
+    stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">🤖 분석</span></div>
     <div class="card"><div style="font-weight:850;margin-bottom:10px">AI 분석 결과 <span style="font-size:.74rem;color:var(--muted);font-weight:700">· 내 학습 데이터 기반</span></div>
-    <div class="fb show no" style="margin:0 0 8px">보충이 필요한 유형: <b>${weakTxt}</b></div>
-    <div class="fb show ok" style="margin:0">강점: ${strongTxt}</div>
-    <div id="aiCoach" style="font-size:.9rem;line-height:1.65;color:var(--ink);margin-top:14px;background:#f6f8fa;border-radius:12px;padding:14px">🤖 AI 코치가 분석 중… ⏳</div>
+    <div id="aiCoach" style="font-size:.9rem;line-height:1.65;color:var(--ink);background:#f6f8fa;border-radius:12px;padding:14px">🤖 AI 코치가 분석 중… ⏳</div>
     <div style="font-size:.85rem;color:var(--muted);margin-top:12px">${weak.length?('내가 약했던 유형으로 '+items.length+'문항 준비했어요.'):'복습 문항을 준비했어요.'}</div></div>`);
     footer(`<button class="btn primary" onclick="window.__ra()">집중 보충 문제 풀기 ▶</button>`);
     const statLines=stats.map(s=>labelSkill(s.k)+' '+Math.round(s.acc*100)+'%('+s.n+'문항)').join(', ');
@@ -1744,10 +1730,10 @@ RENDER.ai=()=>{ $('hudTitle').textContent='AI 약점 클리닉';
       (d,full)=>{ if(__coach)__coach.innerHTML=esc(full).replace(/\n/g,'<br>'); })
       .catch(()=>{ if(__coach)__coach.textContent='분석 코멘트를 불러오지 못했어요. 아래 문제로 바로 보충해 볼까요? 💪'; });
   },1900);
-};
+}
 window.__ra=()=>runQuiz((window.__clinic&&window.__clinic.length?window.__clinic:Q.ai),'teach',null,
-  {kicker:'🤖 AI 클리닉 · 약점 집중',label:'AI',
-   onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], next); }});
+  {kicker:'💪 보충 · 약점 집중',label:'AI',
+   onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], reportGrowth); }});
 /* ===== 설명왕 도전 : be동사를 AI 친구 '베플리'에게 한국어로 설명(가르치며 배우기) ===== */
 RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
   const QS=[
@@ -1813,7 +1799,8 @@ RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
     footer(`<button class="btn primary" onclick="next()">학습 리포트 보기 ▶</button>`); }
   bootAudio(); ask();
 };
-RENDER.report=()=>{ $('hudTitle').textContent='학습 리포트';
+RENDER.report=()=>{ reportAnalysis(); };
+function reportGrowth(){ $('hudTitle').textContent='학습 리포트';
   confettiBurst(26);
   const pct=Math.round(S.totalCorrect/Math.max(S.totalGraded,1)*100);
   const BUCKET={'1인칭':'I + am','3인칭단수':'단수 주어 + is','복수주어':'복수 주어 + are','1인칭복수':'복수 주어 + are','2인칭':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','인칭대명사':'인칭대명사 (He/She/It)','주어-be일치':'주어-be 일치','뜻':'be동사 뜻','설명하기':'설명왕 (가르치기)'};
