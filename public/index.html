@@ -615,7 +615,7 @@ function koPhonetic(s){ return String(s)
   .replace(/\bI\b/g,'아이').replace(/\byou\b/gi,'유').replace(/\bwe\b/gi,'위').replace(/\bthey\b/gi,'데이')
   .replace(/\bhe\b/gi,'히').replace(/\bshe\b/gi,'쉬').replace(/\bit\b/gi,'잇'); }
 /* ---------- 클라우드 TTS (Google Cloud Text-to-Speech) ---------- */
-const TTS_URL='https://us-central1-ditigal-grammar.cloudfunctions.net/speak';
+const TTS_URL='https://us-central1-yoons-digital-grammar-v2.cloudfunctions.net/speak';
 let __ttsAudio=null,__ttsToken=0; const __ttsCache={};
 function stopSpeak(){ __ttsToken++; try{ if(__ttsAudio){__ttsAudio.pause();__ttsAudio.src='';__ttsAudio=null;} }catch(e){} try{if('speechSynthesis'in window)speechSynthesis.cancel();}catch(e){} }
 async function fetchTTS(text,lang){ const key=(lang||'ko')+'|'+text; if(__ttsCache[key])return __ttsCache[key];
