@@ -1,0 +1,12 @@
+# 모든 텍스트 파일의 줄바꿈을 저장소에서 LF로 정규화 (CRLF 껍데기 diff 방지)
+* text=auto eol=lf
+
+# 바이너리/미디어는 변환 대상에서 제외 (손상 방지)
+*.mp4 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp3 binary
+*.wav binary
