@@ -622,11 +622,15 @@ function koPhonetic(s){ return String(s)
   .replace(/\bhe\b/gi,'히').replace(/\bshe\b/gi,'쉬').replace(/\bit\b/gi,'잇'); }
 /* ---------- 클라우드 TTS (Google Cloud Text-to-Speech) ---------- */
 const TTS_URL='https://us-central1-yoons-digital-grammar-v2.cloudfunctions.net/speak';
-/* 음성 출력 전 공통 정제: 이모지는 읽지 않도록 제거, '~'는 '뭐뭐'로 치환 */
+/* 음성 출력 전 공통 정제: 이모지 제거, 인용부호·마크다운 기호 제거(짧은 영어 토큰 오독 방지), '~'는 '뭐뭐'로 치환 */
 const EMOJI_RE=/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu;
+const QUOTE_RE=/['‘’"“”]/g;
+const MD_RE=/\*\*|\*|_{1,2}|#/g;
 function sanitizeForVoice(text){
   return String(text||'')
     .replace(EMOJI_RE,'')
+    .replace(QUOTE_RE,'')
+    .replace(MD_RE,'')
     .replace(/~/g,'뭐뭐')
     .replace(/\s+/g,' ').trim();
 }
