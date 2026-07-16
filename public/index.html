@@ -766,6 +766,14 @@ function go(i){ S.stageIdx=i; renderSteps(); syncHud(); stageEl.scrollTop=0;
   splash(st,()=>RENDER[st.key]());
 }
 const next=()=>go(S.stageIdx+1);
+/* 검수용 홈/이전/다음 네비게이션 — 각 코너가 자신의 next/prev를 등록하면 페이지 단위로,
+   등록 안 된 화면(로드맵/브릿지 등)은 코너 단위로 안전하게 폴백 */
+window.__qaNav = {
+  next: null, prev: null,
+  goNext(){ (this.next || (()=>{ try{stopSpeak();}catch(e){} if(S.stageIdx+1<STAGES.length) next(); else toast('마지막 단계예요'); }))(); },
+  goPrev(){ (this.prev || (()=>{ try{stopSpeak();}catch(e){} go(Math.max(0,S.stageIdx-1)); }))(); },
+  home(){ location.reload(); }
+};
 /* 단계 전환 화면에서 읽어줄 '영역 안내' 음성 (담백하게 한 문장) */
 const STAGE_VOICE={
   learn:'먼저 영상으로 개념을 배우고, 에이아이 선생님과 함께 개념을 익혀 볼게요.',
@@ -799,6 +807,8 @@ function splash(st,cb){
   const vt=STAGE_VOICE[st.key], vn=STAGE_VOICE_NAME[st.key];
   if(vt){ setTimeout(()=>{ if(el.dataset.done)return; try{speakChunks(vn?[{t:vn},{t:vt}]:[{t:vt}]);}catch(e){} },220); }
   const proceed=()=>{ if(el.dataset.done)return; el.dataset.done='1'; try{stopSpeak();}catch(e){} bootAudio(); el.remove(); cb(); };
+  window.__qaNav.next=proceed;
+  window.__qaNav.prev=()=>{ if(el.dataset.done)return; el.dataset.done='1'; try{stopSpeak();}catch(e){} el.remove(); go(Math.max(0,idx-1)); };
   $('splashGo').onclick=proceed;
 }
 
@@ -1076,6 +1086,8 @@ function runQuiz(items,mode,onDone,opt={}){
     }));
   }
   function show(){ const it=items[idx]; const api=renderItemBody(it);
+    window.__qaNav.next=()=>{ nextOrFinish(); };
+    window.__qaNav.prev=()=>{ if(idx>0){ idx--; show(); } };
     api.badge((opt.label||'Q')+' '+(idx+1)+' / '+items.length);
     const w=document.createElement('div'); w.className='wrap';
     w.innerHTML=`<div class="head"><span class="kicker">${opt.kicker||''}</span><span class="qcount">${idx+1} / ${items.length}</span></div>`;
@@ -1124,7 +1136,8 @@ function runQuiz(items,mode,onDone,opt={}){
       }
     } else { nextOrFinish(); }
   }
-  function finish(){ if(opt.onFinish){ opt.onFinish({correct:results.filter(Boolean).length,total:items.length,results:results.slice(),wrong:wrong.map(i=>items[i])}); return; } if(mode!=='drill'){onDone&&onDone();return;}
+  function finish(){ window.__qaNav.next=null; window.__qaNav.prev=null;
+    if(opt.onFinish){ opt.onFinish({correct:results.filter(Boolean).length,total:items.length,results:results.slice(),wrong:wrong.map(i=>items[i])}); return; } if(mode!=='drill'){onDone&&onDone();return;}
     const correct=results.filter(Boolean).length,n=items.length,all=wrong.length===0;
     const w=document.createElement('div'); w.className='wrap';
     const c=document.createElement('div'); c.className='card';
@@ -1178,6 +1191,7 @@ function runAdaptive(poolKey,mode,onDone,opt){
     }}));
   }
   function passScreen(){
+    window.__qaNav.next=()=>window.__advNext&&window.__advNext(); window.__qaNav.prev=null;
     const acc=Math.round((stageTotal?stageCorrect/stageTotal:1)*100); const remain=ordered?lvRemain(pool,used):(pool.length-used.size);
     const w=document.createElement('div'); w.className='wrap';
     w.innerHTML='<div class="card"><div class="praise">오늘 목표 달성! 🎉</div><div class="scorebig">'+stageCorrect+' / '+stageTotal+'</div><div class="scoresub">정답률 '+acc+'% · '+(coreSize===3?'기초가 탄탄해 빠르게 통과했어요!':'잘 해냈어요!')+'</div><div class="qgrid">'+allResults.map(function(r,i){return '<div class="qg '+(r?'o':'x')+'">'+(i+1)+'</div>';}).join('')+'</div></div>';
@@ -1209,7 +1223,10 @@ RENDER.intro=()=>{ $('hudTitle').textContent='01. 인칭대명사 + be동사 현
 };
 RENDER.diag=()=>{ $('hudTitle').textContent='오늘의 워밍업'; try{loadVoices();}catch(e){}
   const items=Q.diag; let i=0;
+  function diagGoto(ni){ stopSpeak(); if(ni<0)return; if(ni>=items.length){diagResult();return;} i=ni; render(); }
   function render(){ const it=items[i];
+    window.__qaNav.next=()=>diagGoto(i+1);
+    window.__qaNav.prev=()=>diagGoto(i-1);
     stageEl.innerHTML=wrapHTML(`<div class="head"><span class="kicker">☀️ 오늘의 워밍업</span><span class="qcount">${i+1} / ${items.length}</span></div>
       <div class="card">
         <div class="qhead"><span class="qbadge">${it.area}</span><span class="qtype">가볍게</span></div>
@@ -1243,7 +1260,7 @@ RENDER.diag=()=>{ $('hudTitle').textContent='오늘의 워밍업'; try{loadVoice
   }
   render();
 };
-function diagResult(){ $('hudTitle').textContent='워밍업 결과 · 오늘의 목표';
+function diagResult(){ window.__qaNav.next=null; window.__qaNav.prev=null; $('hudTitle').textContent='워밍업 결과 · 오늘의 목표';
   const areas=[['뜻','be동사의 뜻'],['1인칭','I + am'],['3인칭단수','단수 주어 + is'],['복수주어','복수 주어 + are']];
   const isOk=a=>{const v=S.skillStat[a[0]]; return !!(v&&v.correct>0);};
   const rows=areas.map((a,i)=>{ const ok=isOk(a);
@@ -1363,6 +1380,8 @@ RENDER.concept=()=>{ try{loadVoices();if('speechSynthesis'in window)speechSynthe
     var __st=$('subjType'); if(__st)__st.onclick=()=>showInputFallback(subjHandler);
   }
   function render(){ const step=TALK[i]; busy=false;
+    window.__qaNav.next=()=>window.__cn();
+    window.__qaNav.prev=()=>{ stopSpeak(); i--; if(i<0){ learnBridge(); return; } render(); };
     if(step.mode==='outro'){
       frame(`<div class="ctalk-body">${step.cap}</div>`,true);
       window.__rp=()=>say(step.chunks); window.__rp();
@@ -1389,6 +1408,7 @@ function learnChip(active){
 }
 RENDER.learn=()=>{ LEARN_ACTIVE=true; RENDER.video(); };  // 로드맵 화면 없이 바로 ① 영상으로
 function learnRoadmap(){
+  window.__qaNav.next=null; window.__qaNav.prev=null;
   $('hudTitle').textContent='개념 익히기';
   stageEl.innerHTML=wrapHTML(`${learnChip(1)}
     <div class="focus-hero" style="text-align:center">
@@ -1411,6 +1431,7 @@ function learnVideoCheck(){
   runQuiz(Q.videoCheck,'teach',learnAfterVideo,{label:'요지 확인',kicker:'🎬 영상 요지 확인'});
 }
 function learnBridge(){
+  window.__qaNav.next=()=>RENDER.concept(); window.__qaNav.prev=()=>RENDER.video();
   $('hudTitle').textContent='개념 익히기';
   stageEl.innerHTML=wrapHTML(`${learnChip(2)}
     <div class="focus-hero" style="text-align:center">
@@ -1423,7 +1444,7 @@ function learnBridge(){
   footer(`<button class="btn primary" id="lnGo2">계속 ▶</button>`);
   var b=$('lnGo2'); if(b)b.onclick=()=>{ stopSpeak(); RENDER.concept(); };
 }
-RENDER.video=()=>{ $('hudTitle').textContent='개념 익히기';
+RENDER.video=()=>{ window.__qaNav.next=()=>learnVideoCheck(); window.__qaNav.prev=null; $('hudTitle').textContent='개념 익히기';
   stageEl.innerHTML=wrapHTML(`${LEARN_ACTIVE?learnChip(1):''}<div class="head"><span class="kicker">🎬 ① 영상으로 배우기</span></div><h2>영상으로 확실하게!</h2>
     <p class="lead">인칭대명사와 be동사 현재형을 영상으로 한 번 더 정리해요.</p>
     <div class="videobox"><video id="vid" controls playsinline preload="metadata" style="width:100%;display:block;max-height:60dvh;background:#000"><source src="01_be.mp4" type="video/mp4"></video></div>
@@ -1446,6 +1467,7 @@ function trainChip(active){
 }
 RENDER.train=()=>{ TRAIN_ACTIVE=true; trainRoadmap(); };
 function trainRoadmap(){
+  window.__qaNav.next=()=>RENDER.sort(); window.__qaNav.prev=null;
   $('hudTitle').textContent='Skill Up';
   stageEl.innerHTML=wrapHTML(`${trainChip(1)}
     <div class="focus-hero" style="text-align:center">
@@ -1463,6 +1485,7 @@ function trainRoadmap(){
 }
 function trainAfterSort(){ if(TRAIN_ACTIVE) trainBridge(); else next(); }
 function trainBridge(){
+  window.__qaNav.next=()=>RENDER.focus(); window.__qaNav.prev=()=>RENDER.sort();
   $('hudTitle').textContent='Skill Up';
   stageEl.innerHTML=wrapHTML(`${trainChip(2)}
     <div class="focus-hero" style="text-align:center">
@@ -1475,7 +1498,7 @@ function trainBridge(){
   footer(`<button class="btn primary" id="trGo2">계속 ▶</button>`);
   var b=$('trGo2'); if(b)b.onclick=()=>{ stopSpeak(); RENDER.focus(); };
 }
-RENDER.sort=()=>{ $('hudTitle').textContent='Skill Up';
+RENDER.sort=()=>{ window.__qaNav.next=()=>{ if(timer)clearInterval(timer); timeUp=true; trainAfterSort(); }; window.__qaNav.prev=()=>{ if(timer)clearInterval(timer); timeUp=true; trainRoadmap(); }; $('hudTitle').textContent='Skill Up';
   const placed={}; let sel=null; let lastFb=''; const order=shuffle(SORT.cards.map((c,i)=>i)); let timeLeft=20,timer=null,timeUp=false;const SORT_T=20;
   const tip={
     am:'I 뒤에는 am!',
@@ -1631,7 +1654,16 @@ RENDER.focus=()=>{
     if(prev===0){ showHandoff(); return; }   // 1번(가이드) → 2번 핸드오프 (1회)
     render();
   }
+  function goPrevQuestion(){
+    if(advancing) return; advancing=true;
+    idx--;
+    if(idx<0){ trainBridge(); return; }
+    resetQuestion();
+    render();
+  }
   function showHandoff(){
+    window.__qaNav.next=()=>render();
+    window.__qaNav.prev=()=>{ idx=0; resetQuestion(); render(); };
     stageEl.innerHTML=`<div class="wrap focus-simple">${TRAIN_ACTIVE?trainChip(2):''}<div class="focus-hero compact" style="text-align:center">
       <div class="focus-ai-guide inline" style="justify-content:center"><div class="face">👩‍🏫</div><div class="msg">이제 알겠죠? <b>이번엔 직접 풀어볼게요!</b></div></div>
       <div style="font-size:clamp(1.4rem,3vw,1.9rem);font-weight:900;margin:18px 0 6px">✏️ 이제 직접 풀어보세요</div>
@@ -1705,6 +1737,8 @@ RENDER.focus=()=>{
     </div>`;
   }
   function render(){
+    window.__qaNav.next=goNextQuestion;
+    window.__qaNav.prev=goPrevQuestion;
     const item=Q.focus[idx];
     const chips=[];
     if(pickedSubject) chips.push(`<span class="focus-done-chip">✓ 주어 ${item.subject}</span>`);
@@ -1761,6 +1795,7 @@ RENDER.focus=()=>{
     });
   }
   function showMethodIntro(){
+    window.__qaNav.next=()=>render(); window.__qaNav.prev=()=>trainBridge();
     $('hudTitle').textContent='Skill Up';
     const steps=[['①','주어 찾기','누가·무엇이 주인공인지'],['②','단수 · 복수 판단','한 명? 여러 명?'],['③','be동사 고르기','am · is · are 중 알맞은 것']];
     stageEl.innerHTML=`<div class="wrap focus-simple">
@@ -1788,10 +1823,10 @@ RENDER.buildup=()=>{ $('hudTitle').textContent='Build Up'; runAdaptive('buildup'
 RENDER.lv2=()=>{ $('hudTitle').textContent='Level Up'; runAdaptive('lv2','drill',next,{kicker:'🔥 Level Up · 어순 배열 + 오류 수정',label:'Q'}); };
 RENDER.write=()=>{ $('hudTitle').textContent='서술형 대비 문제';
   runQuiz(Q.write.slice(0,8),'teach',null,{kicker:'📝 서술형 · AI 첨삭',label:'서술형',
-    onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], next); }});
+    onFinish:function(){ stopSpeak(); window.__qaNav.next=()=>{ stopSpeak(); next(); }; window.__qaNav.prev=null; speakChunks([{t:'수고했어요!'}], next); }});
 };
 RENDER.naesin=()=>{ $('hudTitle').textContent='내신 대비 문제'; runAdaptive('naesin','drill',next,{kicker:'🏫 내신 대비 · 적응형 실전',label:'Q'}); };
-function reportAnalysis(){ $('hudTitle').textContent='학습 리포트';
+function reportAnalysis(){ window.__qaNav.next=()=>window.__ra(); window.__qaNav.prev=null; $('hudTitle').textContent='학습 리포트';
   stageEl.innerHTML=wrapHTML(`<div class="ai-think"><div class="aiface">🤖</div>
     <div style="font-weight:850;font-size:1.1rem">윤하나 친구 약점 분석 중<span class="dots"></span></div>
     <div style="color:var(--muted);font-size:.85rem;margin-top:8px">학습 이력에서 보충이 필요한 유형을 찾고 있어요</div></div>`);
@@ -1823,7 +1858,7 @@ function reportAnalysis(){ $('hudTitle').textContent='학습 리포트';
 }
 window.__ra=()=>runQuiz((window.__clinic&&window.__clinic.length?window.__clinic:Q.ai),'teach',null,
   {kicker:'💪 보충 · 약점 집중',label:'AI',
-   onFinish:function(){ stopSpeak(); speakChunks([{t:'수고했어요!'}], reportGrowth); }});
+   onFinish:function(){ stopSpeak(); window.__qaNav.next=()=>{ stopSpeak(); reportGrowth(); }; window.__qaNav.prev=null; speakChunks([{t:'수고했어요!'}], reportGrowth); }});
 /* ===== 설명왕 도전 : be동사를 AI 친구 '베플리'에게 한국어로 설명(가르치며 배우기) ===== */
 RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
   const QS=[
@@ -1857,6 +1892,8 @@ RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
     }catch(e){ recording=false; recInstance=null; micState(false); showType(onResult); } }
   function toggleRec(onResult){ if(recording){ if(recInstance)try{recInstance.stop();}catch(e){} } else { startRec(onResult); } }
   function ask(){ awaiting=false; attempts=0;
+    window.__qaNav.next=nextQ;
+    window.__qaNav.prev=qi>0?prevQ:null;
     frame(`<div class="ctalk-body" style="font-size:clamp(1.1rem,2.2vw,1.4rem)">${QS[qi].t}</div>
       <div style="font-size:.82rem;color:var(--muted);margin-top:8px">질문 ${qi+1} / ${QS.length} · 말로 설명해 주세요</div>
       <div class="mic-wrap"><button class="mic-btn" id="exMic" aria-label="말하기">🎤</button><div class="mic-hint" id="micHint">탭해서 말하기 시작</div></div>
@@ -1886,13 +1923,15 @@ RENDER.explain=()=>{ $('hudTitle').textContent='설명왕 도전';
     }
   }
   function nextQ(){ stopSpeak(); qi++; if(qi<QS.length) ask(); else finish(); }
-  function finish(){ frame(`<div class="ctalk-body" style="text-align:center">설명해 줘서 고마워요! 덕분에 be동사를 잘 알겠어요 😊<br><b>가르치면서 내 실력도 쑥 올랐을 거예요!</b></div>`,true);
+  function prevQ(){ stopSpeak(); qi--; if(qi<0)return; ask(); }
+  function finish(){ window.__qaNav.next=()=>next(); window.__qaNav.prev=null;
+    frame(`<div class="ctalk-body" style="text-align:center">설명해 줘서 고마워요! 덕분에 be동사를 잘 알겠어요 😊<br><b>가르치면서 내 실력도 쑥 올랐을 거예요!</b></div>`,true);
     stopSpeak(); say([{t:'설명해 줘서 고마워요! 가르치면서 실력이 더 단단해졌을 거예요.'}]);
     footer(`<button class="btn primary" onclick="next()">학습 리포트 보기 ▶</button>`); }
   bootAudio(); ask();
 };
 RENDER.report=()=>{ reportAnalysis(); };
-function reportGrowth(){ $('hudTitle').textContent='학습 리포트';
+function reportGrowth(){ window.__qaNav.next=null; window.__qaNav.prev=null; $('hudTitle').textContent='학습 리포트';
   confettiBurst(26);
   const pct=Math.round(S.totalCorrect/Math.max(S.totalGraded,1)*100);
   const BUCKET={'1인칭':'I + am','3인칭단수':'단수 주어 + is','복수주어':'복수 주어 + are','1인칭복수':'복수 주어 + are','2인칭':'복수 주어 + are','줄임말':'줄임말 (I’m, She’s)','인칭대명사':'인칭대명사 (He/She/It)','주어-be일치':'주어-be 일치','뜻':'be동사 뜻','설명하기':'설명왕 (가르치기)'};
@@ -1927,14 +1966,16 @@ function labelSkill(k){return ({'1인칭':'1인칭 I + am','1인칭복수':'1인
 window.DATA=Q;window.STATE=S;window.RENDER=RENDER;window.STAGES=STAGES;
 renderSteps(); RENDER.intro();
 if(REVIEW_MODE){
-  const rb=document.createElement('button');
-  rb.textContent='⏭ 다음 단계(검수)';
-  rb.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;background:#191f28;color:#fff;border:none;border-radius:9999px;padding:8px 14px;font-size:12px;font-weight:700;opacity:.85;cursor:pointer';
-  rb.onclick=()=>{
-    try{stopSpeak();}catch(e){}
-    if(S.stageIdx+1<STAGES.length) next(); else toast('마지막 단계예요');
-  };
-  document.body.appendChild(rb);
+  const bar=document.createElement('div');
+  bar.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;display:flex;gap:6px';
+  bar.innerHTML=`
+    <button id="qaHome" style="background:#191f28;color:#fff;border:none;border-radius:9999px;padding:8px 12px;font-size:12px;font-weight:700;opacity:.85;cursor:pointer">🏠</button>
+    <button id="qaPrev" style="background:#191f28;color:#fff;border:none;border-radius:9999px;padding:8px 14px;font-size:12px;font-weight:700;opacity:.85;cursor:pointer">◀ 이전</button>
+    <button id="qaNext" style="background:#191f28;color:#fff;border:none;border-radius:9999px;padding:8px 14px;font-size:12px;font-weight:700;opacity:.85;cursor:pointer">다음 ▶</button>`;
+  document.body.appendChild(bar);
+  document.getElementById('qaHome').onclick=()=>window.__qaNav.home();
+  document.getElementById('qaPrev').onclick=()=>window.__qaNav.goPrev();
+  document.getElementById('qaNext').onclick=()=>window.__qaNav.goNext();
 }
 </script>
 </body>
