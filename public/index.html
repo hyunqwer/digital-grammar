@@ -712,7 +712,11 @@ const FIXED_AUDIO = {
   'ko-KR-Chirp3-HD-Kore|ko|영상에서 배운 내용을 확인해 볼게요.':'voice/learn_videocheck_intro.mp3',
   'ko-KR-Chirp3-HD-Kore|ko|영상 잘 봤어요? 이제 AI 선생님과 개념을 익혀 볼게요.':'voice/learn_bridge_intro.mp3',
   'ko-KR-Chirp3-HD-Kore|ko|몸풀기부터 시작해볼까요?':'voice/skillup_sort_intro.mp3',
-  'ko-KR-Chirp3-HD-Kore|ko|오케이! 감 잡았죠? 이제 정밀하게 판단해 볼게요.':'voice/skillup_focus_bridge_intro.mp3'
+  'ko-KR-Chirp3-HD-Kore|ko|오케이! 감 잡았죠? 이제 정밀하게 판단해 볼게요.':'voice/skillup_focus_bridge_intro.mp3',
+  'ko-KR-Chirp3-HD-Kore|ko|안녕하세요! 오늘도 만나서 반가워요.':'voice/intro_greet_1.mp3',
+  'ko-KR-Chirp3-HD-Kore|ko|오늘은 인칭대명사와 be동사 현재형을 배워볼 거예요.':'voice/intro_greet_2.mp3',
+  'ko-KR-Chirp3-HD-Kore|ko|am, is, are의 뜻과 쓰임을 구분하고, 주어에 딱 맞는 be동사를 골라 쓰는 연습을 할 거예요.':'voice/intro_greet_3.mp3',
+  'ko-KR-Chirp3-HD-Kore|ko|틀린 문장도 스스로 딱 잡아낼 수 있게 되는 게 오늘 목표예요!':'voice/intro_greet_4.mp3'
 };
 let __ttsAudio=null,__ttsToken=0; const __ttsCache={};
 function stopSpeak(){ __ttsToken++; try{ if(__ttsAudio){__ttsAudio.pause();__ttsAudio.src='';__ttsAudio=null;} }catch(e){} try{if('speechSynthesis'in window)speechSynthesis.cancel();}catch(e){} }
@@ -1254,7 +1258,12 @@ RENDER.intro=()=>{ $('hudTitle').textContent='01. 인칭대명사 + be동사 현
     <div class="path" style="margin-top:22px">${STAGES.slice(1).map((s,i)=>`<div class="prow" onclick="bootAudio();go(${i+1})"><div class="ic" style="background:#e8f1fd">${s.ic}</div><div class="tx">${s.title}<small style="display:block;margin-top:3px;font-weight:650">${s.sub}</small></div><span style="margin-left:auto;color:#3182f6;font-weight:900;font-size:1.25rem">›</span></div>`).join('')}</div>`);
   footer(`<button class="btn primary" onclick="bootAudio();RENDER.diag()">학습 시작하기 ▶</button>`);
   window.__qaNav.next=()=>{ bootAudio(); RENDER.diag(); }; window.__qaNav.prev=()=>RENDER.cover();
-  setTimeout(()=>{ try{ stopSpeak(); speakChunks([{t:'안녕하세요! 오늘도 만나서 반가워요.'},{t:'이 세 가지 목표에 맞춰 함께 공부해 볼게요.'}]); }catch(e){} },300);
+  setTimeout(()=>{ try{ stopSpeak(); speakChunks([
+    {t:'안녕하세요! 오늘도 만나서 반가워요.'},
+    {t:'오늘은 인칭대명사와 be동사 현재형을 배워볼 거예요.'},
+    {t:'am, is, are의 뜻과 쓰임을 구분하고, 주어에 딱 맞는 be동사를 골라 쓰는 연습을 할 거예요.'},
+    {t:'틀린 문장도 스스로 딱 잡아낼 수 있게 되는 게 오늘 목표예요!'}
+  ]); }catch(e){} },300);
 };
 RENDER.diag=()=>{ $('hudTitle').textContent='오늘의 워밍업'; try{loadVoices();}catch(e){}
   const items=Q.diag; let i=0;
