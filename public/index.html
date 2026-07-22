@@ -1063,6 +1063,7 @@ async function aiGradeExplain(question,modelAnswer,myAns){
 function runQuiz(items,mode,onDone,opt={}){
   let idx=0; const wrong=[]; const results=[]; show();
   function autoDelay(it,ok){
+    if(opt.holdMs!=null) return opt.holdMs;
     if(it.type==='guide'||it.type==='complete') return 0;
     if(it.type==='write' && !ok) return 0;
     if(it.type==='write') return 2100;
@@ -1473,7 +1474,7 @@ function learnVideoCheck(){
   stopSpeak();
   const v=$('vid'); if(v){ try{v.pause();}catch(e){} }
   speakChunks([{t:'영상에서 배운 내용을 확인해 볼게요.'}]);
-  runQuiz(Q.videoCheck,'teach',learnAfterVideo,{label:'요지 확인',kicker:'🎬 영상 요지 확인'});
+  runQuiz(Q.videoCheck,'teach',learnAfterVideo,{label:'요지 확인',kicker:'🎬 영상 요지 확인',holdMs:2500});
 }
 function learnBridge(){
   window.__qaNav.next=()=>RENDER.concept(); window.__qaNav.prev=()=>RENDER.video();
